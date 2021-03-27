@@ -132,7 +132,12 @@ async def injured(ctx):
       return
   else:
     effort = (baseV*2) + wellness
-    await ctx.send("**Healed Effort: **" + str(effort))
+    embeded = discord.Embed(
+            title="Injured Worker",
+            description="**Healed Effort: **" + str(effort),
+            color=0xEE8700
+            )
+    await ctx.send(embed=embeded)
 
 
 keep_alive()
