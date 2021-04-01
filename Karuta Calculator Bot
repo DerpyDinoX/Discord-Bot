@@ -2,104 +2,30 @@ from webserver import keep_alive
 import os
 import asyncio
 import discord
+import re
 from discord.ext import commands
 
 client = commands.Bot(command_prefix="!")
 
 @client.event
 async def on_ready():
-    print("Bot is ready") 
+    print("Bot is ready")
+    await client.change_presence(activity=discord.Activity(name="!commands", type=2))
 
-@client.command()
-async def hello(ctx):
-    await ctx.send("Hi")
+##@client.command()
+##async def hello(ctx):
+##    await ctx.send("Hi")    
 
-@client.command()
-async def commands(ctx):
-    embeded = discord.Embed(
-        title="Commands",
-        description="**!calc** -> Estimates Card's effort when framed, dyed, minted.\n**!injured** -> Estimates Card's effort once healed.",
-        color=0x0F00FF
-        )
-    await ctx.send(embed=embeded)
-
-
-
-@client.command()
-async def calc(ctx):
-    await ctx.send("Enter Base Value:")
-
-    try:
-        message = await client.wait_for("message", check=lambda m: m.author == ctx.author and m.channel == ctx.channel, timeout=10.0)
-        baseV = int(message.content)
-    except asyncio.TimeoutError:
-        await ctx.send("You timed out.")
-        return
-    except:
-        await ctx.send("Not an integer!")
-        return
-
-    await ctx.send("Enter Effort Value:")
-
-    try:
-        messageB = await client.wait_for("message", check=lambda m: m.author == ctx.author and m.channel == ctx.channel, timeout=10.0)
-        effort = int(messageB.content)
-    except asyncio.TimeoutError:
-        await ctx.send("You timed out.")
-        return
-    except:
-        await ctx.send("Not an integer!")
-        return
+@client.event
+async def on_message(message):
+    ## Hello Command
+    if message.content.lower().startswith("!hi"):
+        user = message.author
+        channel = message.channel
+        await channel.send("Hello {}!".format(user))
     
-    embeded = discord.Embed(
-        title="Enter Condition:",
-        description="**Damaged =>** 0\n**Poor =>** 1\n**Good =>** 2\n**Excellent =>** 3\n**Mint =>** 4",
-        color=0xEE8700
-        )
-    msg = await ctx.send(embed=embeded)
-    
-    await msg.add_reaction("0️⃣")
-    await msg.add_reaction("1️⃣")
-    await msg.add_reaction("2️⃣")
-    await msg.add_reaction("3️⃣")
-    await msg.add_reaction("4️⃣")
-
-    def check(reaction, user):
-        global condition
-        if reaction.message == msg and str(reaction.emoji) == "0️⃣" and user == message.author:
-            ##print(str(reaction.emoji))
-            condition = 0
-            return reaction.message == msg and str(reaction.emoji) == "0️⃣"
-        elif reaction.message == msg and str(reaction.emoji) == "1️⃣" and user == message.author:
-            ##print(str(reaction.emoji))
-            condition = 1
-            return reaction.message == msg and str(reaction.emoji) == "1️⃣"
-        elif reaction.message == msg and str(reaction.emoji) == "2️⃣" and user == message.author:
-            ##print(str(reaction.emoji))
-            condition = 2
-            return reaction.message == msg and str(reaction.emoji) == "2️⃣"
-        elif reaction.message == msg and str(reaction.emoji) == "3️⃣" and user == message.author:
-            ##print(str(reaction.emoji))
-            condition = 3
-            return reaction.message == msg and str(reaction.emoji) == "3️⃣"
-        elif reaction.message == msg and str(reaction.emoji) == "4️⃣" and user == message.author:
-            ##print(str(reaction.emoji))
-            condition = 4
-            return reaction.message == msg and str(reaction.emoji) == "4️⃣" #and user == message.author
-        else:
-            return
-    
-    try:
-        await client.wait_for("reaction_add", check=check, timeout=10.0)
-
-    except asyncio.TimeoutError:
-        await ctx.send("You timed out.")
-
-    except:
-        return
-
-    else:
-    
+    def calculate(baseV, effort, condition=4):
+        global embededA
         if condition < 4:
             upgrades = int(4-condition)
             while upgrades > 0:
@@ -108,114 +34,161 @@ async def calc(ctx):
                 baseVB = baseV*2
                 baseV = baseVB
                 upgrades -= 1
-        style = round(baseV*0.2)
-        wellness = round(style*0.25)
-        total = style+wellness
-        ##print(style)
-        ##print(wellness)
-        ##print(baseV+total)
-        
-        styleA = round(baseV*0.75)
-        wellnessA = round(styleA*0.25)
-        totalA = styleA+wellnessA
-        
-        styleB = round(baseV*1.5)
-        wellnessB = round(styleB*0.25)
-        totalB = styleB+wellnessB
+        def dye():
+            global style, wellness, total
+            style = round(baseV*0.2)
+            wellness = round(style*0.25)
+            total = style+wellness
 
-        totalC = round(baseV*1.1875)+effort
+        def Frame():
+            global styleA, wellnessA, totalA
+            styleA = round(baseV*0.75)
+            wellnessA = round(styleA*0.25)
+            totalA = styleA+wellnessA
 
-        if condition < 4:
-            embeded = discord.Embed(
+        def FrameMystic():
+            global styleB, wellnessB, totalB
+            styleB = round(baseV*1.5)
+            wellnessB = round(styleB*0.25)
+            totalB = styleB+wellnessB
+
+        def FrameDye():
+            global styleC, addit, totalC
+            styleC = round(baseV*0.95)
+            addit = round(baseV*0.6875)
+            totalC = round(baseV*1.1875)+effort
+
+        dye()
+        Frame()
+        FrameMystic()
+        FrameDye()
+        if styleZ > int(styleB - 5):
+            embededA = discord.Embed(
+                title="Notice:",
+                description="**This card is already Mystic Dyed and Framed.**",
+                color=0xFF0000
+                )
+            
+        elif styleZ > int(styleC-5):
+            embededA = discord.Embed(
+                title="Card is Framed & Dyed:",
+                description="```Mystic Dyed & Framed: " + str(effort+addit) + "```",
+                color=0x59E936
+                )
+
+        elif styleZ > int(styleA - 5):    
+            embededA = discord.Embed(
+                title="Card is Framed or Mystic Dyed:",
+                description="**__If Framed:__\n**```Framed & Dyed: " + str(effort+total) + "\nFramed & Mystic Dyed: " + str(effort+totalA) + "```\n\n**__If Mystic Dyed:__**\n```Framed & Mystic Dye: " + str(effort+totalA) + "```",
+                color=0x59E936
+                )
+        
+        elif condition < 4:
+            embededA = discord.Embed(
                 title="Efforts",
-                description= "**Mint: **" + str(effort) + "\n**Dyed: **" + str(effort+total)+ "\n**Mystic Dyed/Framed: **" + str(effort+totalA) + "\n**Dyed & Framed: **" + str(totalC) + "\n**Mystic Dyed & Framed: **" + str(effort+totalB),
-                color=0xEE8700
+                description= "**Mint: **`" + str(effort) + "`\n**Dyed: **`" + str(effort+total)+ "`\n**Mystic Dyed/Framed: **`" + str(effort+totalA) + "`\n**Dyed & Framed: **`" + str(totalC) + "`\n**Mystic Dyed & Framed: **`" + str(effort+totalB) + "`",
+                color=0x59E936
                 )
         else:
-            embeded = discord.Embed(
+            embededA = discord.Embed(
                 title="Efforts",
-                description= "**Dyed: **" + str(effort+total)+ "\n**Mystic Dyed/Framed: **" + str(effort+totalA) + "\n**Dyed & Framed: **" + str(totalC) + "\n**Mystic Dyed & Framed: **" + str(effort+totalB),
-                color=0xEE8700
+                description= "**Dyed: **`" + str(effort+total)+ "`\n**Mystic Dyed/Framed: **`" + str(effort+totalA) + "`\n**Dyed & Framed: **`" + str(totalC) + "`\n**Mystic Dyed & Framed: **`" + str(effort+totalB) + "`",
+                color=0x59E936
+                )    
+
+    if message.author.id == 646937666251915264:
+        channel = message.channel
+        try:
+          embed = message.embeds[0]
+        except IndexError:
+          return
+        if embed.title == "Worker Details":
+            description = embed.description.splitlines()
+            ##print(embed.description.splitlines())
+            for element in description:
+                if element.startswith("`Healthy`"):
+                    injured = False
+                elif element.startswith("`Injured`"):
+                    injured = True
+                if element.startswith("Effort"):
+                    effort = int(re.sub("[^0-9]", "", element))
+                if element.endswith("value"):
+                    baseV = int(re.sub("[^0-9]", "", element))
+                if element.endswith("Wellness"):
+                    wellness = int(re.sub("[^0-9]", "", element))
+                if element.endswith("Style"):
+                    styleZ = int(re.sub("[^0-9]", "", element))
+                    if styleZ > 0:
+                        Mint = True
+                    else:
+                        Mint = False
+                    
+            if injured:
+                healed = (effort*2) + wellness
+                embeded = discord.Embed(
+                        title="Injured Worker",
+                        description="**Healed Effort: **" + str(healed),
+                        color=0xEE8700
+                        )
+                effort = healed
+                await channel.send(embed=embeded)
+
+            if Mint:
+                calculate(baseV, effort)
+                await channel.send(embed=embededA)
+            else:
+                    
+                embeded = discord.Embed(
+                title="Enter Condition:",
+                description="**Damaged =>** 0\n**Poor =>** 1\n**Good =>** 2\n**Excellent =>** 3\n**Mint =>** 4",
+                color=0x9B9B9B 
                 )
-        
-        await ctx.send(embed=embeded)
+                
+                msg = await channel.send(embed=embeded)
+                
+                await msg.add_reaction("0️⃣")
+                await msg.add_reaction("1️⃣")
+                await msg.add_reaction("2️⃣")
+                await msg.add_reaction("3️⃣")
+                await msg.add_reaction("4️⃣")
+                
+                
+                def check(reaction, user):
+                    global condition
+                    if reaction.message == msg and str(reaction.emoji) == "0️⃣" and user.bot == False:
+                        condition = 0
+                        return reaction.message == msg and str(reaction.emoji) == "0️⃣"
+                    elif reaction.message == msg and str(reaction.emoji) == "1️⃣" and user.bot == False:
+                        condition = 1
+                        return reaction.message == msg and str(reaction.emoji) == "1️⃣"
+                    elif reaction.message == msg and str(reaction.emoji) == "2️⃣" and user.bot == False:
+                        condition = 2
+                        return reaction.message == msg and str(reaction.emoji) == "2️⃣"
+                    elif reaction.message == msg and str(reaction.emoji) == "3️⃣" and user.bot == False:
+                        condition = 3
+                        return reaction.message == msg and str(reaction.emoji) == "3️⃣"
+                    elif reaction.message == msg and str(reaction.emoji) == "4️⃣" and user.bot == False:
+                        condition = 4
+                        return reaction.message == msg and str(reaction.emoji) == "4️⃣"
+                    else:
+                        return
+                
+                try:
+                    await client.wait_for("reaction_add", check=check, timeout=10.0)
 
+                except asyncio.TimeoutError:
+                    embeded = discord.Embed(
+                        title="Timed out"
+                        )
+                    await msg.edit(embed=embeded)
 
-##@client.command()
-##async def upgrade(ctx):
-##    await ctx.send("Enter Effort Value:")
-##
-##    try:
-##        message = await client.wait_for("message", check=lambda m: m.author == ctx.author and m.channel == ctx.channel, timeout=10.0)
-##        effort = int(message.content)
-##    except asyncio.TimeoutError:
-##        await ctx.send("You timed out.")
-##        return
-##    except:
-##        await ctx.send("Not an integer!")
-##        return
-##
-##    await ctx.send("Enter Condition:\nDamaged => 0\nPoor => 1\nGood => 2\nExcellent => 3")
-##
-##    try:
-##        messageB = await client.wait_for("message", check=lambda m: m.author == ctx.author and m.channel == ctx.channel, timeout=10.0)
-##        condition = int(messageB.content)
-##    except asyncio.TimeoutError:
-##        await ctx.send("You timed out.")
-##        return
-##    except:
-##        await ctx.send("Not an integer!")
-##        return
-##    if condition > 3 or condition < 0:
-##        await ctx.send("That is an invalid number!")
-##        return
-##    else:
-##        upgrades = int(4-condition)
-##        while upgrades > 0:
-##            effortB = round(effort*0.89) + effort
-##            effort = effortB
-##            upgrades -= 1
-##            if upgrades == 3:
-##                await ctx.send("Poor: " + str(effort))
-##            elif upgrades == 2:
-##                await ctx.send("Good: " + str(effort))
-##            elif upgrades == 1:
-##                await ctx.send("Excellent: " + str(effort))
-##            else:
-##                await ctx.send("Mint: " + str(effort))
+                except Exception as e:
+                    ##print(e)
+                    return
 
-@client.command()
-async def injured(ctx):
-  await ctx.send("Enter Current Effort:")
-  try:
-      message = await client.wait_for("message", check=lambda m: m.author == ctx.author and m.channel == ctx.channel, timeout=10.0)
-      baseV = int(message.content)
-  except asyncio.TimeoutError:
-      await ctx.send("You timed out.")
-      return
-  except:
-      await ctx.send("Not an integer!")
-      return
-
-  await ctx.send("Enter Current Wellness:")
-  try:
-      messageB = await client.wait_for("message", check=lambda m: m.author == ctx.author and m.channel == ctx.channel, timeout=10.0)
-      wellness = abs(int(messageB.content))
-  except asyncio.TimeoutError:
-      await ctx.send("You timed out.")
-      return
-  except:
-      await ctx.send("Not an integer!")
-      return
-  else:
-    effort = (baseV*2) + wellness
-    embeded = discord.Embed(
-            title="Injured Worker",
-            description="**Healed Effort: **" + str(effort),
-            color=0xEE8700
-            )
-    await ctx.send(embed=embeded)
-
+                else:
+                    calculate(baseV, effort, condition)
+                    await msg.edit(embed=embededA)
 
 keep_alive()
 TOKEN = os.environ.get("DISCORD_BOT_SECRET")
